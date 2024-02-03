@@ -242,12 +242,15 @@ end MaximalConsistent
 
 structure MaximalConsistentTheory (Λ : AxiomSet β) where
   theory : Theory β
-  consistent : Consistent Λ theory
-  maximal : Maximal theory
+  mc : MaximalConsistent Λ theory
 
 namespace MaximalConsistentTheory
 
 variable (Ω Ω₁ Ω₂ : MaximalConsistentTheory Λ)
+
+lemma consistent : Consistent Λ Ω.theory := Ω.mc.1
+
+lemma maximal : Maximal Ω.theory := Ω.mc.2
 
 @[simp]
 def membership (p : Formula β) (Ω : MaximalConsistentTheory Λ) := p ∈ Ω.theory
@@ -256,16 +259,6 @@ instance : Membership (Formula β) (MaximalConsistentTheory Λ) := ⟨membership
 @[simp]
 def subset := Ω₁.theory ⊆ Ω₂.theory
 instance : HasSubset (MaximalConsistentTheory Λ) := ⟨subset⟩
-
-@[simp] def subset1 (Γ : Theory β) (Ω : MaximalConsistentTheory Λ) := Γ ⊆ Ω.theory
-@[simp] def subset2 (Ω : MaximalConsistentTheory Λ) (Γ : Theory β) := Ω.theory ⊆ Γ
-infix:50 " ⊆ " => subset1
-infix:50 " ⊆ " => subset2
-
-lemma mc : MaximalConsistent Λ Ω.theory := by
-  constructor;
-  . exact Ω.consistent;
-  . exact Ω.maximal;
 
 @[simp] def box := □Ω.theory
 prefix:73  "□" => box
@@ -337,7 +330,7 @@ lemma exists_maximal_consistent_theory' :
 /--
   a.k.a. Lindenbaum Lemma
 -/
-lemma exists_maximal_consistent_theory : ∃ (Ω : MaximalConsistentTheory Λ), (Γ ⊆ Ω) := by
+lemma exists_maximal_consistent_theory : ∃ (Ω : MaximalConsistentTheory Λ), (Γ ⊆ Ω.theory) := by
   have ⟨Ω, ⟨h₁, ⟨h₂, h₃⟩⟩⟩ := exists_maximal_consistent_theory' hConsisΓ;
   existsi ⟨Ω, h₁, (by
     intro p;
@@ -366,7 +359,7 @@ lemma prebox_prov {Γ : Theory β} (h : □⁻¹Γ ⊢ᴹ[Λ]! p) : (Γ ⊢ᴹ[�
   have : □(□⁻¹Γ) ⊢ᴹ[Λ]! □p := ⟨LogicK.Hilbert.deduction_by_boxed_context hK h.some⟩;
   exact this.weakening' (by simp);
 
-lemma mct_mem_box_iff {Ω : MaximalConsistentTheory Λ} {p : Formula β} : (□p ∈ Ω) ↔ (∀ (Ω' : MaximalConsistentTheory Λ), □⁻¹Ω ⊆ Ω' → p ∈ Ω') := by
+lemma mct_mem_box_iff {Ω : MaximalConsistentTheory Λ} {p : Formula β} : (□p ∈ Ω) ↔ (∀ (Ω' : MaximalConsistentTheory Λ), (□⁻¹Ω ⊆ Ω'.theory) → p ∈ Ω') := by
   constructor;
   . aesop;
   . contrapose;
@@ -381,7 +374,7 @@ lemma mct_mem_box_iff {Ω : MaximalConsistentTheory Λ} {p : Formula β} : (□p
     . exact neg_membership_iff.mp (by aesop);
 
 def CanonicalModel (Λ : AxiomSet β) : Model (MaximalConsistentTheory Λ) β where
-  frame (Ω₁ Ω₂) := (□⁻¹Ω₁) ⊆ Ω₂
+  frame (Ω₁ Ω₂) := (□⁻¹Ω₁) ⊆ Ω₂.theory
   val (Ω a) := (atom a) ∈ Ω
 
 
@@ -389,9 +382,9 @@ namespace CanonicalModel
 
 variable {Λ : AxiomSet β} (hK : 𝐊 ⊆ Λ) {Ω Ω₁ Ω₂ : MaximalConsistentTheory Λ}
 
-lemma frame_def: (CanonicalModel Λ).frame Ω₁ Ω₂ ↔ (□⁻¹Ω₁) ⊆ Ω₂ := by rfl
+lemma frame_def: (CanonicalModel Λ).frame Ω₁ Ω₂ ↔ (□⁻¹Ω₁) ⊆ Ω₂.theory := by rfl
 
-lemma frame_def': (CanonicalModel Λ).frame Ω₁ Ω₂ ↔ (◇Ω₂ ⊆ Ω₁) := by
+lemma frame_def': (CanonicalModel Λ).frame Ω₁ Ω₂ ↔ (◇Ω₂ ⊆ Ω₁.theory) := by
   simp only [frame_def];
   constructor;
   . intro h p hp;
@@ -414,9 +407,7 @@ lemma frame_def': (CanonicalModel Λ).frame Ω₁ Ω₂ ↔ (◇Ω₂ ⊆ Ω₁)
     aesop;
 
 @[simp]
-lemma val_def {a : β} :
-  a ∈ (CanonicalModel Λ).val Ω ↔ (atom a) ∈ Ω
-  := by rfl
+lemma val_def {a : β} : (CanonicalModel Λ).val Ω a ↔ (atom a) ∈ Ω := by rfl
 
 lemma axiomT (hT : 𝐓 ⊆ Λ) : Reflexive (CanonicalModel Λ).frame := by
   intro Ω p hp;
@@ -489,7 +480,7 @@ lemma truthlemma {p : Formula β} : ∀ {Ω}, (⊧ᴹ[CanonicalModel Λ, Ω] p) 
       simp [Set.subset_def, CanonicalModel.frame_def] at hΩ';
       exact hΩ' p h;
 
-lemma truthlemma' {Γ : Theory β} : ∀ {Ω}, (⊧ᴹ[CanonicalModel Λ, Ω] Γ) ↔ (Γ ⊆ Ω) := by
+lemma truthlemma' {Γ : Theory β} : ∀ {Ω}, (⊧ᴹ[CanonicalModel Λ, Ω] Γ) ↔ (Γ ⊆ Ω.theory) := by
   intro Ω;
   constructor;
   . simp [Set.subset_def];

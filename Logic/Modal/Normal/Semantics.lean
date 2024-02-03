@@ -9,7 +9,7 @@ open Formula
 variable {α β : Type u} [Inhabited α]
 
 abbrev Frame (α : Type u) := α → α → Prop
-abbrev Valuation (α β : Type u) := α → Set β
+abbrev Valuation (α β : Type u) := α → β → Prop
 
 structure Model (α β : Type u) where
   frame : Frame α
@@ -18,7 +18,7 @@ structure Model (α β : Type u) where
 namespace Formula
 
 def Satisfies (M : Model α β) (w : α) : Formula β → Prop
-  | atom a  => a ∈ M.val w
+  | atom a  => M.val w a
   | falsum  => False
   | and p q => (p.Satisfies M w) ∧ (q.Satisfies M w)
   | or p q  => (p.Satisfies M w) ∨ (q.Satisfies M w)
@@ -31,7 +31,7 @@ namespace Satisfies
 
 variable {M : Model α β}
 
-@[simp] lemma atom_def : (⊧ᴹ[M, w] atom a) ↔ a ∈ M.val w := by simp [Satisfies];
+@[simp] lemma atom_def : (⊧ᴹ[M, w] atom a) ↔ M.val w a := by simp [Satisfies];
 
 @[simp] lemma top_def : (⊧ᴹ[M, w] ⊤) := by simp [Satisfies];
 
@@ -246,9 +246,8 @@ lemma AxiomT.defines : (Reflexive F) ↔ (⊧ᴹ[F] (𝐓 : AxiomSet β)) := by
     . intro w';
       by_cases w = w';
       . simp_all;
-      . simp_all; intros; trivial;
+      . simp_all;
     . simp;
-      aesop;
 
 lemma AxiomD.defines : (Serial F) ↔ (⊧ᴹ[F] (𝐃 : AxiomSet β)) := by
   constructor;
@@ -275,12 +274,12 @@ lemma AxiomB.defines : (Symmetric F) ↔ (⊧ᴹ[F] (𝐁 : AxiomSet β)) := by
     simp [AxiomB, AxiomB.set];
     existsi (λ w' _ => w' = w₁), w₁, (atom default);
     constructor;
-    . simp; trivial;
+    . simp;
     . existsi w₂, (by assumption);
       intro w';
       by_cases w' = w₁;
       . aesop;
-      . simp [*]; intros; aesop;
+      . simp [*];
 
 lemma Axiom4.defines : (Transitive F) ↔ (⊧ᴹ[F] (𝟒 : AxiomSet β)) := by
   constructor;
@@ -295,7 +294,7 @@ lemma Axiom4.defines : (Transitive F) ↔ (⊧ᴹ[F] (𝟒 : AxiomSet β)) := by
     . intro w';
       by_cases w' = w₃;
       . aesop;
-      . simp [*]; intros; trivial;
+      . simp [*];
     . existsi w₂, (by assumption), w₃, (by assumption); aesop;
 
 lemma Axiom5.defines : (Euclidean F) ↔ (⊧ᴹ[F] (𝟓 : AxiomSet β)) := by
@@ -308,7 +307,7 @@ lemma Axiom5.defines : (Euclidean F) ↔ (⊧ᴹ[F] (𝟓 : AxiomSet β)) := by
     simp [Axiom5, Axiom5.set];
     existsi (λ w' _ => ¬F w₂ w'), w₁, (atom default), w₃;
     constructor;
-    . simp; simp[*]; trivial;
+    . simp; simp[*];
     . existsi (by assumption), w₂, (by assumption);
       intros; simp; aesop;
 
